@@ -46,20 +46,20 @@ if not TELEGRAM_API_KEY:
 # ایجاد برنامه تلگرام
 application = Application.builder().token(TELEGRAM_API_KEY).build()
 
-# تعریف متغیرها
+# متغیرهای اولیه
 video_to_post = []
-hashtags = "#viral"  # هشتگ برای جستجوی ویدیوهای وایرال
-likes_threshold = 100  # حداقل لایک برای ویدیوها
+hashtags = "#viral"
+min_likes = 1000
 
-# دریافت ویدیوهای ترند از اینستاگرام
+# دانلود ویدیوهای ترند از اینستاگرام
 def download_trending_videos():
     print("در حال دانلود ویدیوهای ترند...")
-    profile = instaloader.Profile.from_username(L.context, "instagram")  # صفحه اینستاگرام
+    profile = instaloader.Profile.from_username(L.context, "instagram")
     for post in profile.get_posts():
-        if post.is_video and post.likes >= likes_threshold:
-            L.download_post(post, target="downloads")  # دانلود ویدیوها
+        if post.is_video and post.likes >= min_likes:
+            L.download_post(post, target="downloads")
             video_to_post.append(post)
-            break  # برای دانلود فقط یک ویدیو در هر بار
+            break
 
 # تایید ویدیو توسط کاربر
 async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,7 +73,7 @@ async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_video(
         video=open(f"downloads/{post.shortcode}.mp4", "rb"),
         caption=caption,
-        reply_markup=InlineKeyboardMarkup([  # ایجاد دکمه‌ها برای تایید و عدم تایید
+        reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("تایید", callback_data="approve"),
              InlineKeyboardButton("عدم تایید", callback_data="reject")]
         ]))
@@ -83,61 +83,48 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query.data == "approve":
         post = video_to_post.pop(0)
-        # ارسال پست در کانال یا گروه
         await query.message.reply_text("پست تایید شد.")
-        # ارسال به تلگرام
         await context.bot.send_video(chat_id=update.message.chat_id,
                                      video=open(f"downloads/{post.shortcode}.mp4", "rb"),
                                      caption=post.caption)
     elif query.data == "reject":
         video_to_post.pop(0)
         await query.message.reply_text("پست رد شد و ویدیو جدید پیدا خواهد شد.")
-        download_trending_videos()  # جستجوی ویدیو جدید
+        download_trending_videos()
 
 # تغییر هشتگ
 async def change_hashtag(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:  # اگر پیغام از نوع Message باشد
-        await update.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
-    elif update.callback_query:  # اگر پیغام از نوع CallbackQuery باشد
-        await update.callback_query.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
-    else:
-        print("پیام یا کال بک وجود ندارد.")
+    await update.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
 
+# تغییر تعداد لایک‌ها
+async def change_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
 
-# دریافت هشتگ جدید
+# دریافت ورودی برای هشتگ‌ها و تعداد لایک‌ها
 async def set_hashtag(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global hashtags
     hashtags = update.message.text
     await update.message.reply_text(f"هشتگ جدید تنظیم شد: {hashtags}")
 
-# دستور تغییر تعداد لایک‌ها
-async def change_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
-# تغییر لایک‌ها
-async def change_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:  # اگر پیغام از نوع Message باشد
-        await update.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
-    elif update.callback_query:  # اگر پیغام از نوع CallbackQuery باشد
-        await update.callback_query.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
-    else:
-        print("پیام یا کال بک وجود ندارد.")
-
+async def set_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global min_likes
+    try:
+        min_likes = int(update.message.text)
+        await update.message.reply_text(f"تعداد لایک‌های جدید تنظیم شد: {min_likes}")
+    except ValueError:
+        await update.message.reply_text("لطفاً یک عدد صحیح وارد کنید.")
 
 # شروع ربات
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("تغییر هشتگ", callback_data="change_hashtag"),
-         InlineKeyboardButton("تغییر حداقل لایک‌ها", callback_data="change_likes")]
-    ]
-    await update.message.reply_text("سلام! من ربات مدیریت اینستاگرام هستم.", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("سلام! من ربات مدیریت اینستاگرام هستم. از دستورهای زیر استفاده کنید.")
 
 # ثبت دستورات
 application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("change_hashtag", change_hashtag))
+application.add_handler(CommandHandler("change_likes", change_likes))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, set_hashtag))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, change_likes))
-application.add_handler(CallbackQueryHandler(button, pattern="approve|reject"))
-application.add_handler(CallbackQueryHandler(change_hashtag, pattern="change_hashtag"))
-application.add_handler(CallbackQueryHandler(change_likes, pattern="change_likes"))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, set_likes))
+application.add_handler(CallbackQueryHandler(button))
 
 # اجرای سرور HTTP روی پورت 8080
 def run_flask_app():
