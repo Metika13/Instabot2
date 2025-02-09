@@ -2,7 +2,6 @@ import os
 import instaloader
 import requests
 import time
-import schedule
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
@@ -40,11 +39,9 @@ except Exception as e:
 # دریافت ویدیوهای ترند از اینستاگرام
 def download_trending_videos():
     print("📥 در حال دانلود ویدیوهای ترند...")
-    for tag in hashtags.split(","):
-        # حذف کاراکتر '#' در صورتی که کاربر به همراه آن وارد کرده باشد
-        tag = tag.strip().lstrip('#')
+    for hashtag in hashtags.split(","):
         try:
-            posts = L.get_hashtag_posts(tag)
+            posts = L.get_hashtag_posts(hashtag.strip())
             for post in posts:
                 if post.is_video and post.likes > min_likes:
                     L.download_post(post, target="downloads")
@@ -53,32 +50,24 @@ def download_trending_videos():
                     return
                 time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
         except Exception as e:
-            if "429" in str(e):
-                print(f"🚦 ارور نرخ درخواست (429) برای هشتگ #{tag} دریافت شد. در حال استراحت به مدت 666 ثانیه...")
-                time.sleep(666)
-            else:
-                print(f"❌ خطا در دریافت ویدیوهای هشتگ #{tag}: {e}")
+            print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}: {e}")
 
 # دانلود استوری‌ها از پیج‌های مشخص
 def download_stories():
     print("📥 در حال دانلود استوری‌ها...")
-    for profile_name in profiles_to_fetch:
+    for profile in profiles_to_fetch:
         try:
-            profile_obj = instaloader.Profile.from_username(L.context, profile_name)
-            stories = profile_obj.get_stories()
+            profile = instaloader.Profile.from_username(L.context, profile)
+            stories = profile.get_stories()
             for story in stories:
                 if len(stories_to_post) >= num_stories_to_fetch:
                     return
                 L.download_storyitem(story, target="downloads/stories")
                 stories_to_post.append(story)
-                print(f"✅ استوری از {profile_obj.username} دانلود شد.")
+                print(f"✅ استوری از {profile.username} دانلود شد.")
                 time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
         except Exception as e:
-            if "429" in str(e):
-                print(f"🚦 ارور نرخ درخواست (429) برای پروفایل {profile_name} دریافت شد. در حال استراحت به مدت 666 ثانیه...")
-                time.sleep(666)
-            else:
-                print(f"❌ خطا در دریافت استوری‌ها از {profile_name}: {e}")
+            print(f"❌ خطا در دریافت استوری‌ها از {profile}: {e}")
 
 # ارسال پست در اینستاگرام (نیاز به API اینستاگرام)
 def upload_to_instagram(post):
@@ -89,17 +78,6 @@ def upload_to_instagram(post):
 def upload_story_to_instagram(story):
     # این بخش نیاز به API اینستاگرام دارد
     print(f"✅ استوری در اینستاگرام آپلود شد.")
-
-# زمان‌بندی ارسال پست‌ها
-def schedule_post(post, caption, time_to_post):
-    schedule.every().day.at(time_to_post).do(upload_to_instagram, post, caption)
-    print(f"⏰ پست برای ارسال در {time_to_post} زمان‌بندی شد.")
-
-# اجرای زمان‌بندی‌ها
-def run_scheduler():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
 
 # ایجاد کیبورد پیش‌فرض
 def get_main_keyboard():
@@ -184,10 +162,4 @@ async def webhook():
 
 # اجرای ربات
 if __name__ == '__main__':
-    # شروع زمان‌بندی در یک thread جداگانه
-    import threading
-    scheduler_thread = threading.Thread(target=run_scheduler)
-    scheduler_thread.start()
-
-    # اجرای ربات
     app.run(host='0.0.0.0', port=8080)
