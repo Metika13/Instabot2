@@ -2,11 +2,12 @@ import os
 import random
 import logging
 import asyncio
+import nest_asyncio  # ⬅️ اضافه کردن این کتابخانه برای حل مشکل event loop
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from instaloader import Instaloader, Profile, Post
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # تنظیمات
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -26,13 +27,16 @@ else:
     L.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)
     L.save_session_to_file(SESSION_FILE)
 
-# تنظیمات Scheduler
-scheduler = BackgroundScheduler()
-scheduler.start()
-
 # لاگ‌گیری
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# تنظیمات Scheduler
+scheduler = AsyncIOScheduler()
+scheduler.start()
+
+# حل مشکل event loop
+nest_asyncio.apply()
 
 # دستورات تلگرام
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -133,10 +137,11 @@ async def scheduled_post(application: Application):
 def schedule_post(application: Application):
     hour, minute = map(int, POSTING_TIME.split(":"))
     scheduler.add_job(
-        lambda: asyncio.run_coroutine_threadsafe(scheduled_post(application), asyncio.get_event_loop()),
+        scheduled_post,
         'cron',
         hour=hour,
-        minute=minute
+        minute=minute,
+        args=[application]
     )
 
 # تابع اصلی
@@ -152,9 +157,6 @@ async def main():
     
     await application.run_polling()
 
+# اجرای صحیح در Render
 if __name__ == "__main__":
-    import asyncio
-
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    loop.run_forever()
+    asyncio.run(main())  # ⬅️ حالا بدون خطای event loop اجرا می‌شود
