@@ -134,7 +134,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ثبت دستورات
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, set_hashtag))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, set_likes))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, change_likes))
 application.add_handler(CallbackQueryHandler(button, pattern="approve|reject"))
 application.add_handler(CallbackQueryHandler(change_hashtag, pattern="change_hashtag"))
 application.add_handler(CallbackQueryHandler(change_likes, pattern="change_likes"))
