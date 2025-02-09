@@ -11,7 +11,7 @@ import urllib.request
 # لینک خام فایل سشن در گیت‌هاب
 session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'  # لینک خام فایل سشن از گیت‌هاب
 
-# مسیر ذخیره فایل سشن در سرور (مسیر جدید)
+# مسیر ذخیره فایل سشن در سرور
 session_file_path = '/tmp/mtkh13o_session.json'
 
 # دانلود فایل سشن از گیت‌هاب
@@ -67,9 +67,8 @@ def approve_video(update: Update, context: CallbackContext):
         reply_markup=InlineKeyboardMarkup([  # ایجاد دکمه‌ها برای تایید و عدم تایید
             [InlineKeyboardButton("تایید", callback_data="approve"),
              InlineKeyboardButton("عدم تایید", callback_data="reject")]
-        ])
-    )
-
+        ]))
+    
 # کنترل انتخاب کاربر برای تایید یا رد پست
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
