@@ -1,87 +1,92 @@
-import requests
-import instaloader
-from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
-import schedule
 import time
+import instaloader
+import schedule
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import CallbackQueryHandler
+from datetime import datetime
+import os
 
-# URL فایل سشن در گیت‌هاب
-SESSION_URL = "https://github.com/yourusername/yourrepository/raw/main/mtkh13o.session"
-SESSION_FILE = "mtkh13o.session"
+# اینستاگرام login
+L = instaloader.Instaloader()
+L.load_session_from_file("mtkh13o")  # استفاده از فایل سشن موجود
 
-# بارگذاری فایل سشن از گیت‌هاب
-def download_session_file():
-    try:
-        print("در حال دانلود فایل سشن...")
-        response = requests.get(SESSION_URL)
-        with open(SESSION_FILE, 'wb') as file:
-            file.write(response.content)
-        print("فایل سشن با موفقیت دانلود شد.")
-    except Exception as e:
-        print(f"خطا در دانلود فایل سشن: {e}")
+# تنظیمات ربات
+TELEGRAM_API_KEY = "YOUR_TELEGRAM_API_KEY"
+updater = Updater(TELEGRAM_API_KEY, use_context=True)
+dispatcher = updater.dispatcher
 
-# ورود به اینستاگرام با استفاده از سشن
-def login_instagram():
-    L = instaloader.Instaloader()
-    
-    try:
-        # بارگذاری سشن از فایل
-        L.load_session_from_file(SESSION_FILE)
-        print("با موفقیت وارد اینستاگرام شدید.")
-    except FileNotFoundError:
-        print("فایل سشن یافت نشد، لطفاً دوباره وارد شوید.")
-        username = input("نام کاربری اینستاگرام: ")
-        password = input("رمز عبور اینستاگرام: ")
-        L.context.log("در حال ورود...")
-        L.login(username, password)
-        L.save_session_to_file(SESSION_FILE)
-        print("سشن ذخیره شد.")
-    return L
+# تعریف متغیرها
+video_to_post = []
+hashtags = "#viral"  # هشتگ برای جستجوی ویدیوهای وایرال
 
-# ارسال و پست و استوری از ویدیوهای دانلود شده
-async def post_video_to_telegram(update: Update, context: CallbackContext):
-    # بررسی و دانلود ویدیو
-    video_url = "https://www.instagram.com/p/xxxxxx/"  # آدرس ویدیو یا پست اینستاگرام
-    L = login_instagram()
-    post = instaloader.Post.from_shortcode(L.context, video_url.split("/")[-2])
-    
-    # بررسی وضعیت پست و ارسال به تلگرام
-    if post.is_video:
-        video_file = post.url
-        await update.message.chat.send_video(video=video_file)
-        await update.message.reply_text("ویدیو با موفقیت ارسال شد.")
-    else:
-        await update.message.reply_text("این پست ویدیو نیست.")
+# دریافت ویدیوهای ترند از اینستاگرام
+def download_trending_videos():
+    print("در حال دانلود ویدیوهای ترند...")
+    profile = instaloader.Profile.from_username(L.context, "instagram")  # صفحه اینستاگرام
+    for post in profile.get_posts():
+        if post.is_video:
+            L.download_post(post, target="downloads")  # دانلود ویدیوها
+            video_to_post.append(post)
+            break  # برای دانلود فقط یک ویدیو در هر بار
 
-# زمان‌بندی برای ارسال پست‌ها
-def schedule_posting(update: Update, context: CallbackContext):
-    # برنامه‌ریزی ارسال در زمان خاص
-    schedule.every().day.at("12:00").do(post_video_to_telegram, update=update, context=context)
-    update.message.reply_text("برنامه‌ریزی ارسال پست با موفقیت انجام شد.")
+# تایید ویدیو توسط کاربر
+def approve_video(update: Update, context: CallbackContext):
+    if len(video_to_post) == 0:
+        update.message.reply_text("هیچ ویدیویی برای ارسال وجود ندارد.")
+        return
+
+    post = video_to_post[0]
+    caption = f"{post.caption} {hashtags}"
+
+    update.message.reply_video(
+        video=open(f"downloads/{post.shortcode}.mp4", "rb"),
+        caption=caption,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("تایید", callback_data="approve"),
+             InlineKeyboardButton("عدم تایید", callback_data="reject")]
+        ])
+    )
+
+# کنترل انتخاب کاربر برای تایید یا رد پست
+def button(update: Update, context: CallbackContext):
+    query = update.callback_query
+    if query.data == "approve":
+        post = video_to_post.pop(0)
+        # ارسال پست در کانال یا گروه
+        query.message.reply_text("پست تایید شد.")
+        # ارسال به تلگرام
+        context.bot.send_video(chat_id=update.message.chat_id,
+                               video=open(f"downloads/{post.shortcode}.mp4", "rb"),
+                               caption=post.caption)
+    elif query.data == "reject":
+        video_to_post.pop(0)
+        query.message.reply_text("پست رد شد و ویدیو جدید پیدا خواهد شد.")
+        download_trending_videos()  # جستجوی ویدیو جدید
+
+# زمان‌بندی ارسال پست‌ها
+def schedule_posts():
+    schedule.every(10).minutes.do(download_trending_videos)  # هر 10 دقیقه یک بار ویدیو دانلود می‌شود
 
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-# ایجاد و راه‌اندازی ربات تلگرام
+# شروع ربات
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("سلام! من ربات مدیریت اینستاگرام هستم.")
+
 def main():
-    # توکن ربات تلگرام خود را وارد کنید
-    TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+    # ثبت دستورات
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, approve_video))
+    dispatcher.add_handler(CallbackQueryHandler(button))
 
-    # ایجاد اپلیکیشن برای ربات تلگرام
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    # شروع ربات تلگرام
+    updater.start_polling()
 
-    # دستورات ربات
-    application.add_handler(CommandHandler("start", lambda update, context: update.message.reply_text("سلام! من ربات تلگرام هستم.")))
-    application.add_handler(CommandHandler("post", post_video_to_telegram))
-    application.add_handler(CommandHandler("schedule", schedule_posting))
+    # شروع زمان‌بندی ارسال پست‌ها
+    schedule_posts()
 
-    # شروع ربات
-    application.run_polling()
-
-# اجرای ربات
 if __name__ == '__main__':
-    # دانلود فایل سشن از گیت‌هاب
-    download_session_file()
-    # اجرای ربات تلگرام
     main()
