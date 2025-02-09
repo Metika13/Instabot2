@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: instagram-bot
+    runtime: python
+    build:
+      os: ubuntu
+      version: 3.11
+    env: python
+    envVars:
+      - key: TELEGRAM_API_KEY
+        value: YOUR_TELEGRAM_BOT_API_KEY
+    plan: free
+    command: python bot.py
