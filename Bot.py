@@ -94,9 +94,15 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("پست رد شد و ویدیو جدید پیدا خواهد شد.")
         download_trending_videos()  # جستجوی ویدیو جدید
 
-# دستور تغییر هشتگ
+# تغییر هشتگ
 async def change_hashtag(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
+    if update.message:  # اگر پیغام از نوع Message باشد
+        await update.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
+    elif update.callback_query:  # اگر پیغام از نوع CallbackQuery باشد
+        await update.callback_query.message.reply_text("لطفاً هشتگ جدید را وارد کنید:")
+    else:
+        print("پیام یا کال بک وجود ندارد.")
+
 
 # دریافت هشتگ جدید
 async def set_hashtag(update: Update, context: ContextTypes.DEFAULT_TYPE):
