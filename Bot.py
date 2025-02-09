@@ -11,8 +11,8 @@ import urllib.request
 # لینک خام فایل سشن در گیت‌هاب
 session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'  # لینک خام فایل سشن از گیت‌هاب
 
-# مسیر ذخیره فایل سشن در سرور
-session_file_path = '/opt/render/project/src/mtkh13o_session.json'
+# مسیر ذخیره فایل سشن در سرور (مسیر جدید)
+session_file_path = '/tmp/mtkh13o_session.json'
 
 # دانلود فایل سشن از گیت‌هاب
 try:
