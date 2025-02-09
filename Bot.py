@@ -9,7 +9,7 @@ import os
 
 # اینستاگرام login
 L = instaloader.Instaloader()
-L.load_session_from_file("mtkh13o.session")  # استفاده از فایل سشن موجود
+L.load_session_from_file("/etc/secrets/session.json")  # استفاده از فایل سشن موجود
 
 # تنظیمات ربات
 TELEGRAM_API_KEY = "7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU"
