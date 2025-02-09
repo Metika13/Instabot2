@@ -11,7 +11,7 @@ import os
 L = instaloader.Instaloader()
 
 # دریافت مسیر فایل سشن از متغیر محیطی
-session_file_path = os.getenv("INSTAGRAM_SESSION_FILE", "/etc/secrets/mtkh13o_session.json")
+session_file_path = "/opt/render/project/src/mtkh13o_session.json"  # مسیر جدید فایل سشن
 
 # بارگذاری سشن از فایل
 try:
