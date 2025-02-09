@@ -128,6 +128,10 @@ application.add_handler(CommandHandler("set_hashtags", set_hashtags))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # وب‌هوک برای Render
+@app.route('/')
+def home():
+    return "ربات تلگرام در حال اجرا است!"
+
 @app.route('/webhook', methods=['POST'])
 async def webhook():
     update = Update.de_json(await request.get_json(), application.bot)
