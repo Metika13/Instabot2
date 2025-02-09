@@ -9,7 +9,17 @@ import os
 
 # اینستاگرام login
 L = instaloader.Instaloader()
-L.load_session_from_file("/etc/secrets/mtkh13o_session.json")  # استفاده از فایل سشن موجود
+
+# دریافت مسیر فایل سشن از متغیر محیطی
+session_file_path = os.getenv("INSTAGRAM_SESSION_FILE", "/etc/secrets/mtkh13o_session.json")
+
+# بارگذاری سشن از فایل
+try:
+    L.load_session_from_file(session_file_path)  # استفاده از فایل سشن موجود
+    print("سشن با موفقیت بارگذاری شد.")
+except FileNotFoundError:
+    print(f"فایل سشن در مسیر {session_file_path} پیدا نشد.")
+    exit(1)
 
 # تنظیمات ربات
 TELEGRAM_API_KEY = "7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU"
@@ -42,7 +52,7 @@ def approve_video(update: Update, context: CallbackContext):
     update.message.reply_video(
         video=open(f"downloads/{post.shortcode}.mp4", "rb"),
         caption=caption,
-        reply_markup=InlineKeyboardMarkup([
+        reply_markup=InlineKeyboardMarkup([  # ایجاد دکمه‌ها برای تایید و عدم تایید
             [InlineKeyboardButton("تایید", callback_data="approve"),
              InlineKeyboardButton("عدم تایید", callback_data="reject")]
         ])
@@ -79,7 +89,7 @@ def start(update: Update, context: CallbackContext):
 def main():
     # ثبت دستورات
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, approve_video))
+    dispatcher.add_handler(MessageHandler(filters.text & ~filters.command, approve_video))
     dispatcher.add_handler(CallbackQueryHandler(button))
 
     # شروع ربات تلگرام
