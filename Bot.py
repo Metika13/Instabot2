@@ -5,7 +5,7 @@ import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from datetime import datetime
-from flask import Flask  # اضافه کردن Flask برای ایجاد سرور HTTP
+from flask import Flask
 
 # ایجاد یک سرور HTTP ساده
 app = Flask(__name__)
@@ -48,6 +48,7 @@ application = Application.builder().token(TELEGRAM_API_KEY).build()
 # متغیرهای جدید برای لایک و هشتگ
 min_likes = 1000  # حداقل لایک برای انتخاب ویدیوها
 hashtags = "#viral"  # هشتگ پیش‌فرض
+video_to_post = []  # لیست ویدیوهای دانلود شده
 
 # دریافت ویدیوهای ترند از اینستاگرام
 def download_trending_videos():
@@ -89,12 +90,13 @@ async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # کنترل انتخاب کاربر برای تایید یا رد پست
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    await query.answer()
     if query.data == "approve":
         post = video_to_post.pop(0)
         # ارسال پست در کانال یا گروه
         await query.message.reply_text("✅ پست تایید شد و در گروه/کانال ارسال خواهد شد.")
         # ارسال به تلگرام
-        await context.bot.send_video(chat_id=update.message.chat_id,
+        await context.bot.send_video(chat_id=query.message.chat_id,
                                      video=open(f"downloads/{post.shortcode}.mp4", "rb"),
                                      caption=post.caption)
     elif query.data == "reject":
@@ -119,8 +121,8 @@ async def set_hashtags(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ایجاد دکمه‌ها برای دستورات اصلی
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("تایید ویدیو", callback_data="approve"),
-         InlineKeyboardButton("تنظیم لایک‌ها", callback_data="set_likes"),
+        [InlineKeyboardButton("تایید ویدیو", callback_data="approve_video")],
+        [InlineKeyboardButton("تنظیم لایک‌ها", callback_data="set_likes"),
          InlineKeyboardButton("تنظیم هشتگ‌ها", callback_data="set_hashtags")]
     ])
 
