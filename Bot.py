@@ -40,9 +40,11 @@ except Exception as e:
 # دریافت ویدیوهای ترند از اینستاگرام
 def download_trending_videos():
     print("📥 در حال دانلود ویدیوهای ترند...")
-    for hashtag in hashtags.split(","):
+    for tag in hashtags.split(","):
+        # حذف کاراکتر '#' در صورتی که کاربر به همراه آن وارد کرده باشد
+        tag = tag.strip().lstrip('#')
         try:
-            posts = L.get_hashtag_posts(hashtag.strip())
+            posts = L.get_hashtag_posts(tag)
             for post in posts:
                 if post.is_video and post.likes > min_likes:
                     L.download_post(post, target="downloads")
@@ -51,24 +53,32 @@ def download_trending_videos():
                     return
                 time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
         except Exception as e:
-            print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}: {e}")
+            if "429" in str(e):
+                print(f"🚦 ارور نرخ درخواست (429) برای هشتگ #{tag} دریافت شد. در حال استراحت به مدت 666 ثانیه...")
+                time.sleep(666)
+            else:
+                print(f"❌ خطا در دریافت ویدیوهای هشتگ #{tag}: {e}")
 
 # دانلود استوری‌ها از پیج‌های مشخص
 def download_stories():
     print("📥 در حال دانلود استوری‌ها...")
-    for profile in profiles_to_fetch:
+    for profile_name in profiles_to_fetch:
         try:
-            profile = instaloader.Profile.from_username(L.context, profile)
-            stories = profile.get_stories()
+            profile_obj = instaloader.Profile.from_username(L.context, profile_name)
+            stories = profile_obj.get_stories()
             for story in stories:
                 if len(stories_to_post) >= num_stories_to_fetch:
                     return
                 L.download_storyitem(story, target="downloads/stories")
                 stories_to_post.append(story)
-                print(f"✅ استوری از {profile.username} دانلود شد.")
+                print(f"✅ استوری از {profile_obj.username} دانلود شد.")
                 time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
         except Exception as e:
-            print(f"❌ خطا در دریافت استوری‌ها از {profile}: {e}")
+            if "429" in str(e):
+                print(f"🚦 ارور نرخ درخواست (429) برای پروفایل {profile_name} دریافت شد. در حال استراحت به مدت 666 ثانیه...")
+                time.sleep(666)
+            else:
+                print(f"❌ خطا در دریافت استوری‌ها از {profile_name}: {e}")
 
 # ارسال پست در اینستاگرام (نیاز به API اینستاگرام)
 def upload_to_instagram(post):
