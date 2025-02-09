@@ -160,6 +160,17 @@ async def webhook():
     await application.update_queue.put(update)
     return 'ok'
 
+# تنظیم وب‌هوک
+async def set_webhook():
+    webhook_url = "https://instabot2-1.onrender.com/webhook"
+    await application.bot.set_webhook(url=webhook_url)
+    print(f"Webhook set to: {webhook_url}")
+
 # اجرای ربات
 if __name__ == '__main__':
+    # تنظیم وب‌هوک
+    import asyncio
+    asyncio.run(set_webhook())
+
+    # اجرای ربات
     app.run(host='0.0.0.0', port=8080)
