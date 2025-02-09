@@ -113,15 +113,15 @@ async def set_hashtag(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # دستور تغییر تعداد لایک‌ها
 async def change_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
+# تغییر لایک‌ها
+async def change_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message:  # اگر پیغام از نوع Message باشد
+        await update.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
+    elif update.callback_query:  # اگر پیغام از نوع CallbackQuery باشد
+        await update.callback_query.message.reply_text("لطفاً حداقل تعداد لایک‌ها را وارد کنید:")
+    else:
+        print("پیام یا کال بک وجود ندارد.")
 
-# دریافت تعداد لایک جدید
-async def set_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global likes_threshold
-    try:
-        likes_threshold = int(update.message.text)
-        await update.message.reply_text(f"حداقل لایک جدید تنظیم شد: {likes_threshold}")
-    except ValueError:
-        await update.message.reply_text("لطفاً یک عدد صحیح وارد کنید.")
 
 # شروع ربات
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
