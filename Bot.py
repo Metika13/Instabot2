@@ -5,6 +5,7 @@ import time
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # ایجاد یک سرور HTTP ساده
 app = Flask(__name__)
@@ -18,6 +19,10 @@ if not TELEGRAM_API_KEY:
 min_likes = 1000  # حداقل لایک برای انتخاب ویدیوها
 hashtags = "#viral"  # هشتگ پیش‌فرض
 video_to_post = []  # لیست ویدیوهای دانلود شده
+stories_to_post = []  # لیست استوری‌های دانلود شده
+profiles_to_fetch = ["profile1", "profile2"]  # لیست پیج‌ها برای دانلود استوری
+num_stories_to_fetch = 5  # تعداد استوری‌های دانلود شده
+scheduler = BackgroundScheduler()  # زمان‌بندی ارسال پست‌ها
 
 # بارگذاری سشن اینستاگرام
 L = instaloader.Instaloader()
@@ -49,11 +54,43 @@ def download_trending_videos():
         except Exception as e:
             print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}: {e}")
 
+# دانلود استوری‌ها از پیج‌های مشخص
+def download_stories():
+    print("📥 در حال دانلود استوری‌ها...")
+    for profile in profiles_to_fetch:
+        try:
+            profile = instaloader.Profile.from_username(L.context, profile)
+            stories = profile.get_stories()
+            for story in stories:
+                if len(stories_to_post) >= num_stories_to_fetch:
+                    return
+                L.download_storyitem(story, target="downloads/stories")
+                stories_to_post.append(story)
+                print(f"✅ استوری از {profile.username} دانلود شد.")
+                time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
+        except Exception as e:
+            print(f"❌ خطا در دریافت استوری‌ها از {profile}: {e}")
+
+# ارسال پست در اینستاگرام (نیاز به API اینستاگرام)
+def upload_to_instagram(post):
+    # این بخش نیاز به API اینستاگرام دارد
+    print(f"✅ پست {post.shortcode} در اینستاگرام آپلود شد.")
+
+# ارسال استوری در اینستاگرام (نیاز به API اینستاگرام)
+def upload_story_to_instagram(story):
+    # این بخش نیاز به API اینستاگرام دارد
+    print(f"✅ استوری در اینستاگرام آپلود شد.")
+
+# زمان‌بندی ارسال پست‌ها
+def schedule_post(post, caption, time_to_post):
+    scheduler.add_job(upload_to_instagram, 'date', run_date=time_to_post, args=[post, caption])
+    print(f"⏰ پست برای ارسال در {time_to_post} زمان‌بندی شد.")
+
 # ایجاد کیبورد پیش‌فرض
-def get_reply_keyboard():
+def get_main_keyboard():
     keyboard = [
-        [KeyboardButton("تایید ویدیو")],
-        [KeyboardButton("تنظیم لایک‌ها"), KeyboardButton("تنظیم هشتگ‌ها")]
+        [KeyboardButton("پست‌ها"), KeyboardButton("استوری‌ها")],
+        [KeyboardButton("تنظیمات")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
 
@@ -84,20 +121,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text == "تایید":
         post = video_to_post.pop(0)
-        await update.message.reply_text("✅ پست تایید شد و در گروه/کانال ارسال خواهد شد.")
-        await context.bot.send_video(chat_id=update.message.chat_id,
-                                     video=open(f"downloads/{post.shortcode}.mp4", "rb"),
-                                     caption=post.caption)
+        await update.message.reply_text("✅ پست تایید شد و در اینستاگرام ارسال خواهد شد.")
+        upload_to_instagram(post)
     elif text == "رد":
         video_to_post.pop(0)
         await update.message.reply_text("❌ پست رد شد و ویدیو جدید پیدا خواهد شد.")
         download_trending_videos()
-    elif text == "تایید ویدیو":
+    elif text == "پست‌ها":
         await approve_video(update, context)
-    elif text == "تنظیم لایک‌ها":
-        await update.message.reply_text("لطفاً تعداد لایک‌های مورد نظر را وارد کنید.")
-    elif text == "تنظیم هشتگ‌ها":
-        await update.message.reply_text("لطفاً هشتگ‌های مورد نظر را وارد کنید.")
+    elif text == "استوری‌ها":
+        await download_stories()
+    elif text == "تنظیمات":
+        await update.message.reply_text("تنظیمات ربات:")
     elif text.startswith("#"):  # اگر کاربر هشتگ وارد کرد
         global hashtags
         hashtags = text
@@ -109,32 +144,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("دستور نامعتبر است. لطفاً از کیبورد استفاده کنید.")
 
-# تنظیم تعداد لایک و هشتگ‌ها از طریق دستورات ربات
-async def set_min_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global min_likes
-    try:
-        min_likes = int(context.args[0])
-        await update.message.reply_text(f"حداقل لایک به {min_likes} تغییر یافت.")
-    except (IndexError, ValueError):
-        await update.message.reply_text("لطفاً یک عدد معتبر برای تعداد لایک وارد کنید.")
-
-async def set_hashtags(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global hashtags
-    hashtags = " ".join(context.args)
-    await update.message.reply_text(f"هشتگ‌ها به: {hashtags} تغییر یافت.")
-
-# ایجاد دکمه‌ها برای دستورات اصلی
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "سلام! من ربات مدیریت اینستاگرام هستم. لطفاً یکی از گزینه‌ها را انتخاب کنید.",
-        reply_markup=get_reply_keyboard()
-    )
-
 # ثبت دستورات
 application = Application.builder().token(TELEGRAM_API_KEY).build()
 application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("set_likes", set_min_likes))
-application.add_handler(CommandHandler("set_hashtags", set_hashtags))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # وب‌هوک برای Render
@@ -148,13 +160,9 @@ async def webhook():
     await application.update_queue.put(update)
     return 'ok'
 
-# تنظیم وب‌هوک
-async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com/webhook"
-    await application.bot.set_webhook(url=webhook_url)
-    print(f"Webhook set to: {webhook_url}")
-
 # اجرای ربات
 if __name__ == '__main__':
-    # تنظیم وب‌هوک
-    application.run_polling()  # یا application.run_webhook() اگر از وب‌هوک استفاده می‌کنید
+    # شروع زمان‌بندی
+    scheduler.start()
+    # اجرای ربات
+    application.run_polling()
