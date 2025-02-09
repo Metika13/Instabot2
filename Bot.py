@@ -146,4 +146,5 @@ async def set_webhook():
 
 # اجرای ربات
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    # تنظیم وب‌هوک
+    application.run_polling()  # یا application.run_webhook() اگر از وب‌هوک استفاده می‌کنید
