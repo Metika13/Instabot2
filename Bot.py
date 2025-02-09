@@ -5,8 +5,7 @@ import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from datetime import datetime
-from flask import Flask
-from instabot import Bot  # استفاده از Instabot برای ارسال پست‌ها در اینستاگرام
+from flask import Flask  # اضافه کردن Flask برای ایجاد سرور HTTP
 
 # ایجاد یک سرور HTTP ساده
 app = Flask(__name__)
@@ -50,7 +49,7 @@ application = Application.builder().token(TELEGRAM_API_KEY).build()
 min_likes = 1000  # حداقل لایک برای انتخاب ویدیوها
 hashtags = "#viral"  # هشتگ پیش‌فرض
 
-# دانلود ویدیوهای ترند
+# دریافت ویدیوهای ترند از اینستاگرام
 def download_trending_videos():
     print("📥 در حال دانلود ویدیوهای ترند...")
 
@@ -87,22 +86,17 @@ async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption=caption,
         reply_markup=keyboard)
 
-# ارسال ویدیو به اینستاگرام
-def post_to_instagram(video_path, caption):
-    bot = Bot()  # ایجاد بوت اینستاگرام
-    bot.login(username="your_instagram_username", password="your_instagram_password")  # وارد شدن به حساب اینستاگرام
-    bot.upload_video(video_path, caption=caption)  # ارسال ویدیو به اینستاگرام
-
 # کنترل انتخاب کاربر برای تایید یا رد پست
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query.data == "approve":
         post = video_to_post.pop(0)
-        # ارسال ویدیو به اینستاگرام
-        video_path = f"downloads/{post.shortcode}.mp4"
-        caption = f"{post.caption} {hashtags}"
-        post_to_instagram(video_path, caption)
-        await query.message.reply_text("✅ پست تایید شد و در صفحه اینستاگرام ارسال خواهد شد.")
+        # ارسال پست در کانال یا گروه
+        await query.message.reply_text("✅ پست تایید شد و در گروه/کانال ارسال خواهد شد.")
+        # ارسال به تلگرام
+        await context.bot.send_video(chat_id=update.message.chat_id,
+                                     video=open(f"downloads/{post.shortcode}.mp4", "rb"),
+                                     caption=post.caption)
     elif query.data == "reject":
         video_to_post.pop(0)
         await query.message.reply_text("❌ پست رد شد و ویدیو جدید پیدا خواهد شد.")
