@@ -72,7 +72,7 @@ async def button(update: Update, context: CallbackContext) -> None:
 # اصلی
 def main() -> None:
     # توکن ربات
-    token = 'YOUR_BOT_API_TOKEN'
+    token = '7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU'
 
     # ایجاد اپلیکیشن و دستورات
     application = Application.builder().token(token).build()
