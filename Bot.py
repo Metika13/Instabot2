@@ -180,4 +180,4 @@ if __name__ == '__main__':
     scheduler_thread.start()
 
     # اجرای ربات
-    application.run_polling()
+    app.run(host='0.0.0.0', port=8080)
