@@ -1,40 +1,40 @@
 import time
 import instaloader
 import schedule
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
-from telegram.ext import CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 from datetime import datetime
 import os
-import urllib.request
-
-# لینک خام فایل سشن در گیت‌هاب
-session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'  # لینک خام فایل سشن از گیت‌هاب
-
-# مسیر ذخیره فایل سشن در سرور
-session_file_path = '/tmp/mtkh13o_session.json'
+import requests
 
 # دانلود فایل سشن از گیت‌هاب
+session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'
+session_file_path = './mtkh13o_session.json'
+
 try:
-    urllib.request.urlretrieve(session_file_url, session_file_path)
+    response = requests.get(session_file_url)
+    with open(session_file_path, 'wb') as file:
+        file.write(response.content)
     print("فایل سشن با موفقیت دانلود شد.")
 except Exception as e:
     print(f"خطا در دانلود فایل سشن: {e}")
     exit(1)
 
-# اینستاگرام login
+# بارگذاری سشن
 L = instaloader.Instaloader()
-
-# بارگذاری سشن از فایل
 try:
-    L.load_session_from_file(session_file_path)  # استفاده از فایل سشن موجود
+    L.load_session_from_file('mtkh13o', session_file_path)
     print("سشن با موفقیت بارگذاری شد.")
-except FileNotFoundError:
-    print(f"فایل سشن در مسیر {session_file_path} پیدا نشد.")
+except Exception as e:
+    print(f"خطا در بارگذاری سشن: {e}")
     exit(1)
 
 # تنظیمات ربات
-TELEGRAM_API_KEY = "7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU"
+TELEGRAM_API_KEY = os.getenv('TELEGRAM_API_KEY')
+if not TELEGRAM_API_KEY:
+    print("کلید API تلگرام یافت نشد.")
+    exit(1)
+
 updater = Updater(TELEGRAM_API_KEY, use_context=True)
 dispatcher = updater.dispatcher
 
