@@ -1,8 +1,8 @@
 import os
 import instaloader
 import requests
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
 
 # ایجاد یک سرور HTTP ساده
@@ -47,6 +47,14 @@ def download_trending_videos():
         except Exception as e:
             print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}: {e}")
 
+# ایجاد کیبورد پیش‌فرض
+def get_reply_keyboard():
+    keyboard = [
+        [KeyboardButton("تایید ویدیو")],
+        [KeyboardButton("تنظیم لایک‌ها"), KeyboardButton("تنظیم هشتگ‌ها")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+
 # تایید ویدیو توسط کاربر
 async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(video_to_post) == 0:
@@ -57,30 +65,39 @@ async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     post = video_to_post[0]
     caption = f"{post.caption} {hashtags}"
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("تایید", callback_data="approve"),
-         InlineKeyboardButton("رد", callback_data="reject")]
-    ])
+    # ارسال ویدیو با کیبورد تایید/رد
+    keyboard = [
+        [KeyboardButton("تایید"), KeyboardButton("رد")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
 
     await update.message.reply_video(
         video=open(f"downloads/{post.shortcode}.mp4", "rb"),
         caption=caption,
-        reply_markup=keyboard)
+        reply_markup=reply_markup
+    )
 
 # کنترل انتخاب کاربر برای تایید یا رد پست
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if query.data == "approve":
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "تایید":
         post = video_to_post.pop(0)
-        await query.message.reply_text("✅ پست تایید شد و در گروه/کانال ارسال خواهد شد.")
-        await context.bot.send_video(chat_id=query.message.chat_id,
+        await update.message.reply_text("✅ پست تایید شد و در گروه/کانال ارسال خواهد شد.")
+        await context.bot.send_video(chat_id=update.message.chat_id,
                                      video=open(f"downloads/{post.shortcode}.mp4", "rb"),
                                      caption=post.caption)
-    elif query.data == "reject":
+    elif text == "رد":
         video_to_post.pop(0)
-        await query.message.reply_text("❌ پست رد شد و ویدیو جدید پیدا خواهد شد.")
+        await update.message.reply_text("❌ پست رد شد و ویدیو جدید پیدا خواهد شد.")
         download_trending_videos()
+    elif text == "تایید ویدیو":
+        await approve_video(update, context)
+    elif text == "تنظیم لایک‌ها":
+        await update.message.reply_text("لطفاً تعداد لایک‌های مورد نظر را وارد کنید.")
+    elif text == "تنظیم هشتگ‌ها":
+        await update.message.reply_text("لطفاً هشتگ‌های مورد نظر را وارد کنید.")
+    else:
+        await update.message.reply_text("دستور نامعتبر است. لطفاً از کیبورد استفاده کنید.")
 
 # تنظیم تعداد لایک و هشتگ‌ها از طریق دستورات ربات
 async def set_min_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -98,20 +115,17 @@ async def set_hashtags(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ایجاد دکمه‌ها برای دستورات اصلی
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("تایید ویدیو", callback_data="approve_video")],
-        [InlineKeyboardButton("تنظیم لایک‌ها", callback_data="set_likes"),
-         InlineKeyboardButton("تنظیم هشتگ‌ها", callback_data="set_hashtags")]
-    ])
-    await update.message.reply_text("سلام! من ربات مدیریت اینستاگرام هستم. لطفاً یکی از گزینه‌ها را انتخاب کنید.", reply_markup=keyboard)
+    await update.message.reply_text(
+        "سلام! من ربات مدیریت اینستاگرام هستم. لطفاً یکی از گزینه‌ها را انتخاب کنید.",
+        reply_markup=get_reply_keyboard()
+    )
 
 # ثبت دستورات
 application = Application.builder().token(TELEGRAM_API_KEY).build()
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("set_likes", set_min_likes))
 application.add_handler(CommandHandler("set_hashtags", set_hashtags))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, approve_video))
-application.add_handler(CallbackQueryHandler(button))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # وب‌هوک برای Render
 @app.route('/webhook', methods=['POST'])
@@ -120,6 +134,12 @@ async def webhook():
     await application.update_queue.put(update)
     return 'ok'
 
+# تنظیم وب‌هوک
+async def set_webhook():
+    webhook_url = "https://instabot2-1.onrender.com/webhook"
+    await application.bot.set_webhook(url=webhook_url)
+    print(f"Webhook set to: {webhook_url}")
+
 # اجرای ربات
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(host='0.0.0.0', port=8080)
