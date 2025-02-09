@@ -1,7 +1,7 @@
 import time
 import instaloader
 import schedule
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from telegram.ext import CallbackQueryHandler
 from datetime import datetime
@@ -11,7 +11,7 @@ import os
 L = instaloader.Instaloader()
 
 # دریافت مسیر فایل سشن از متغیر محیطی
-session_file_path = "/opt/render/project/src/mtkh13o_session.json"  # مسیر جدید فایل سشن
+session_file_path = os.environ.get('SESSION_FILE_PATH', 'mtkh13o_session.json')  # مسیر فایل سشن از متغیر محیطی
 
 # بارگذاری سشن از فایل
 try:
