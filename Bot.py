@@ -119,14 +119,11 @@ async def main():
     job_queue = application.job_queue
     job_queue.run_repeating(scheduled_post, interval=60, first=10)
 
+    # استفاده از run_polling برای جلوگیری از مشکلات با حلقه رویداد
     await application.run_polling()
 
 if __name__ == "__main__":
     import asyncio
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
+    # در اینجا بررسی می‌کنیم که آیا یک حلقه رویداد در حال اجرا است یا خیر
+    loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
