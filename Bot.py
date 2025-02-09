@@ -6,6 +6,14 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from datetime import datetime
 import os
 import requests
+from flask import Flask  # اضافه کردن Flask برای ایجاد سرور HTTP
+
+# ایجاد یک سرور HTTP ساده
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "ربات تلگرام در حال اجرا است!"
 
 # دانلود فایل سشن از گیت‌هاب
 session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'
@@ -93,6 +101,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, approve_video))
 application.add_handler(CallbackQueryHandler(button))
+
+# اجرای سرور HTTP روی پورت 8080
+def run_flask_app():
+    app.run(host='0.0.0.0', port=8080)
+
+# اجرای سرور HTTP در یک thread جداگانه
+import threading
+flask_thread = threading.Thread(target=run_flask_app)
+flask_thread.start()
 
 # شروع ربات تلگرام
 print("ربات در حال اجرا است...")
