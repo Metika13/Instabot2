@@ -1,4 +1,4 @@
-python-telegram-bot
-instaloader
-APScheduler
-boto3  # فقط اگر از AWS S3 برای ذخیره‌سازی فایل سشن استفاده می‌کنید
+python-telegram-bot==20.0
+instaloader==4.10.1
+schedule==1.1.0
+apscheduler==3.8.1
