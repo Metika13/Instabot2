@@ -1,3 +1,5 @@
 python-telegram-bot==20.0
 instaloader==4.8.4
 schedule==1.1.0
+requests
+Flask
