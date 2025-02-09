@@ -12,7 +12,7 @@ L = instaloader.Instaloader()
 L.load_session_from_file("mtkh13o")  # استفاده از فایل سشن موجود
 
 # تنظیمات ربات
-TELEGRAM_API_KEY = "YOUR_TELEGRAM_API_KEY"
+TELEGRAM_API_KEY = "7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU"
 updater = Updater(TELEGRAM_API_KEY, use_context=True)
 dispatcher = updater.dispatcher
 
