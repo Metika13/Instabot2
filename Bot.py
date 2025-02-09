@@ -2,12 +2,10 @@ import os
 import random
 import logging
 import asyncio
-import nest_asyncio  # ⬅️ اضافه کردن این کتابخانه برای حل مشکل event loop
-from datetime import datetime
+from datetime import datetime, time
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from instaloader import Instaloader, Profile, Post
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # تنظیمات
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -16,7 +14,7 @@ INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD")
 SESSION_FILE = "instagram_session"
 TARGET_PAGES = ["target_page1", "target_page2"]
 HASHTAGS = ["viral", "trending"]
-POSTING_TIME = "12:00"
+POSTING_TIME = time(12, 0)  # زمان پیش‌فرض پست (12:00)
 APPROVAL_CHAT_ID = os.getenv("APPROVAL_CHAT_ID")
 
 # تنظیمات Instaloader
@@ -31,13 +29,6 @@ else:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# تنظیمات Scheduler
-scheduler = AsyncIOScheduler()
-scheduler.start()
-
-# حل مشکل event loop
-nest_asyncio.apply()
-
 # دستورات تلگرام
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("خوش آمدید! از /settime برای تغییر زمان پست استفاده کنید.")
@@ -45,9 +36,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def settime(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         global POSTING_TIME
-        POSTING_TIME = context.args[0]
+        hour, minute = map(int, context.args[0].split(":"))
+        POSTING_TIME = time(hour, minute)
         await update.message.reply_text(f"زمان پست به {POSTING_TIME} تنظیم شد.")
-        schedule_post()
     except (IndexError, ValueError):
         await update.message.reply_text("فرمت صحیح: /settime HH:MM")
 
@@ -120,8 +111,7 @@ async def post_content(media, context: ContextTypes.DEFAULT_TYPE, chat_id: int):
         return False
 
 # زمان‌بندی و اجرای خودکار
-async def scheduled_post(application: Application):
-    context = application.bot
+async def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
     media = download_viral_video()
     if media:
         approval_result = await approve_content(media, context)
@@ -134,15 +124,12 @@ async def scheduled_post(application: Application):
     else:
         logger.info("محتوا پیدا نشد")
 
-def schedule_post(application: Application):
-    hour, minute = map(int, POSTING_TIME.split(":"))
-    scheduler.add_job(
-        scheduled_post,
-        'cron',
-        hour=hour,
-        minute=minute,
-        args=[application]
-    )
+async def schedule_post(context: ContextTypes.DEFAULT_TYPE):
+    while True:
+        now = datetime.now().time()
+        if now.hour == POSTING_TIME.hour and now.minute == POSTING_TIME.minute:
+            await scheduled_post(context)
+        await asyncio.sleep(60)  # هر ۶۰ ثانیه چک کنید
 
 # تابع اصلی
 async def main():
@@ -152,11 +139,10 @@ async def main():
     application.add_handler(CommandHandler("settime", settime))
     application.add_handler(CommandHandler("changepage", change_page))
     
-    # تنظیم زمان‌بندی اولیه
-    schedule_post(application)
+    # شروع زمان‌بندی
+    asyncio.create_task(schedule_post(application))
     
     await application.run_polling()
 
-# اجرای صحیح در Render
 if __name__ == "__main__":
-    asyncio.run(main())  # ⬅️ حالا بدون خطای event loop اجرا می‌شود
+    asyncio.run(main())
