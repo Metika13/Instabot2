@@ -116,20 +116,13 @@ async def post_content(media, context: ContextTypes.DEFAULT_TYPE, chat_id: int):
         return False
 
 # زمان‌بندی و اجرای خودکار
-def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
+async def scheduled_post(application: Application):
+    context = application.bot
     media = download_viral_video()
     if media:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        approval_result = loop.run_until_complete(
-            approve_content(media, context)
-        )
-        
+        approval_result = await approve_content(media, context)
         if approval_result:
-            post_result = loop.run_until_complete(
-                post_content(media, context, context.job.chat_id)
-            )
+            post_result = await post_content(media, context, APPROVAL_CHAT_ID)
             if not post_result:
                 logger.error("خطا در ارسال محتوا")
         else:
@@ -140,11 +133,10 @@ def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
 def schedule_post(application: Application):
     hour, minute = map(int, POSTING_TIME.split(":"))
     scheduler.add_job(
-        scheduled_post,
+        lambda: asyncio.run_coroutine_threadsafe(scheduled_post(application), asyncio.get_event_loop()),
         'cron',
         hour=hour,
-        minute=minute,
-        args=[application]
+        minute=minute
     )
 
 # تابع اصلی
@@ -161,4 +153,8 @@ async def main():
     await application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import asyncio
+
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    loop.run_forever()
