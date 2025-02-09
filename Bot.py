@@ -1,7 +1,7 @@
 import requests
 import instaloader
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 import schedule
 import time
 
@@ -39,7 +39,7 @@ def login_instagram():
     return L
 
 # ارسال و پست و استوری از ویدیوهای دانلود شده
-def post_video_to_telegram(update: Update, context: CallbackContext):
+async def post_video_to_telegram(update: Update, context: CallbackContext):
     # بررسی و دانلود ویدیو
     video_url = "https://www.instagram.com/p/xxxxxx/"  # آدرس ویدیو یا پست اینستاگرام
     L = login_instagram()
@@ -48,10 +48,10 @@ def post_video_to_telegram(update: Update, context: CallbackContext):
     # بررسی وضعیت پست و ارسال به تلگرام
     if post.is_video:
         video_file = post.url
-        context.bot.send_video(chat_id=update.message.chat_id, video=video_file)
-        update.message.reply_text("ویدیو با موفقیت ارسال شد.")
+        await update.message.chat.send_video(video=video_file)
+        await update.message.reply_text("ویدیو با موفقیت ارسال شد.")
     else:
-        update.message.reply_text("این پست ویدیو نیست.")
+        await update.message.reply_text("این پست ویدیو نیست.")
 
 # زمان‌بندی برای ارسال پست‌ها
 def schedule_posting(update: Update, context: CallbackContext):
@@ -68,18 +68,16 @@ def main():
     # توکن ربات تلگرام خود را وارد کنید
     TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 
-    # ایجاد اپدیت و آپدیت‌کننده برای ربات تلگرام
-    updater = Updater(TELEGRAM_TOKEN)
-    dispatcher = updater.dispatcher
+    # ایجاد اپلیکیشن برای ربات تلگرام
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # دستورات ربات
-    dispatcher.add_handler(CommandHandler("start", lambda update, context: update.message.reply_text("سلام! من ربات تلگرام هستم.")))
-    dispatcher.add_handler(CommandHandler("post", post_video_to_telegram))
-    dispatcher.add_handler(CommandHandler("schedule", schedule_posting))
+    application.add_handler(CommandHandler("start", lambda update, context: update.message.reply_text("سلام! من ربات تلگرام هستم.")))
+    application.add_handler(CommandHandler("post", post_video_to_telegram))
+    application.add_handler(CommandHandler("schedule", schedule_posting))
 
     # شروع ربات
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 # اجرای ربات
 if __name__ == '__main__':
