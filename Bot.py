@@ -1,11 +1,10 @@
 import os
 import random
 import logging
-import asyncio
 from datetime import datetime, time
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
-from instaloader import Instaloader, Profile, Post
+from telegram.ext import Application, CommandHandler, ContextTypes, JobQueue
+from instaloader import Instaloader, Profile
 
 # تنظیمات
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -14,7 +13,7 @@ INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD")
 SESSION_FILE = "instagram_session"
 TARGET_PAGES = ["target_page1", "target_page2"]
 HASHTAGS = ["viral", "trending"]
-POSTING_TIME = time(12, 0)  # زمان پیش‌فرض پست (12:00)
+POSTING_TIME = time(12, 0)
 APPROVAL_CHAT_ID = os.getenv("APPROVAL_CHAT_ID")
 
 # تنظیمات Instaloader
@@ -43,12 +42,9 @@ async def settime(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("فرمت صحیح: /settime HH:MM")
 
 async def change_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global TARGET_PAGES
-        TARGET_PAGES = context.args
-        await update.message.reply_text(f"صفحات هدف به {', '.join(TARGET_PAGES)} به‌روزرسانی شدند.")
-    except IndexError:
-        await update.message.reply_text("فرمت صحیح: /changepage page1 page2")
+    global TARGET_PAGES
+    TARGET_PAGES = context.args
+    await update.message.reply_text(f"صفحات هدف به {', '.join(TARGET_PAGES)} به‌روزرسانی شدند.")
 
 # توابع کمکی
 def download_viral_video():
@@ -96,53 +92,35 @@ async def approve_content(media, context: ContextTypes.DEFAULT_TYPE):
 async def post_content(media, context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     try:
         if media.is_video:
-            await context.bot.send_video(
-                chat_id=chat_id,
-                video=media.video_url
-            )
+            await context.bot.send_video(chat_id=chat_id, video=media.video_url)
         else:
-            await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=media.url
-            )
+            await context.bot.send_photo(chat_id=chat_id, photo=media.url)
         return True
     except Exception as e:
         logger.error(f"خطا در ارسال محتوا: {e}")
         return False
 
-# زمان‌بندی و اجرای خودکار
 async def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
-    media = download_viral_video()
-    if media:
-        approval_result = await approve_content(media, context)
-        if approval_result:
-            post_result = await post_content(media, context, APPROVAL_CHAT_ID)
-            if not post_result:
-                logger.error("خطا در ارسال محتوا")
-        else:
-            logger.info("محتوا تأیید نشد")
-    else:
-        logger.info("محتوا پیدا نشد")
+    now = datetime.now().time()
+    if now.hour == POSTING_TIME.hour and now.minute == POSTING_TIME.minute:
+        media = download_viral_video()
+        if media:
+            approval_result = await approve_content(media, context)
+            if approval_result:
+                await post_content(media, context, APPROVAL_CHAT_ID)
 
-async def schedule_post(context: ContextTypes.DEFAULT_TYPE):
-    while True:
-        now = datetime.now().time()
-        if now.hour == POSTING_TIME.hour and now.minute == POSTING_TIME.minute:
-            await scheduled_post(context)
-        await asyncio.sleep(60)  # هر ۶۰ ثانیه چک کنید
-
-# تابع اصلی
 async def main():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("settime", settime))
     application.add_handler(CommandHandler("changepage", change_page))
-    
-    # شروع زمان‌بندی
-    asyncio.create_task(schedule_post(application))
-    
+
+    job_queue = application.job_queue
+    job_queue.run_repeating(scheduled_post, interval=60, first=10)
+
     await application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(main())
