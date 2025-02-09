@@ -1,17 +1,29 @@
 import time
 import instaloader
 import schedule
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from telegram.ext import CallbackQueryHandler
 from datetime import datetime
 import os
+import urllib.request
+
+# لینک خام فایل سشن در گیت‌هاب
+session_file_url = 'https://github.com/Metika13/Instabot2/raw/main/mtkh13o_session.json'  # لینک خام فایل سشن از گیت‌هاب
+
+# مسیر ذخیره فایل سشن در سرور
+session_file_path = '/opt/render/project/src/mtkh13o_session.json'
+
+# دانلود فایل سشن از گیت‌هاب
+try:
+    urllib.request.urlretrieve(session_file_url, session_file_path)
+    print("فایل سشن با موفقیت دانلود شد.")
+except Exception as e:
+    print(f"خطا در دانلود فایل سشن: {e}")
+    exit(1)
 
 # اینستاگرام login
 L = instaloader.Instaloader()
-
-# دریافت مسیر فایل سشن از متغیر محیطی
-session_file_path = os.environ.get('SESSION_FILE_PATH', 'mtkh13o_session.json')  # مسیر فایل سشن از متغیر محیطی
 
 # بارگذاری سشن از فایل
 try:
