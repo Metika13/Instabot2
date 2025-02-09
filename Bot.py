@@ -1,6 +1,7 @@
 import os
 import instaloader
 import requests
+import time
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
@@ -44,6 +45,7 @@ def download_trending_videos():
                     video_to_post.append(post)
                     print(f"✅ ویدیو {post.shortcode} با {post.likes} لایک دانلود شد.")
                     return
+                time.sleep(10)  # تأخیر 10 ثانیه بین درخواست‌ها
         except Exception as e:
             print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}: {e}")
 
@@ -96,6 +98,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("لطفاً تعداد لایک‌های مورد نظر را وارد کنید.")
     elif text == "تنظیم هشتگ‌ها":
         await update.message.reply_text("لطفاً هشتگ‌های مورد نظر را وارد کنید.")
+    elif text.startswith("#"):  # اگر کاربر هشتگ وارد کرد
+        global hashtags
+        hashtags = text
+        await update.message.reply_text(f"هشتگ‌ها به: {hashtags} تغییر یافت.")
+    elif text.isdigit():  # اگر کاربر عدد وارد کرد (برای تنظیم لایک)
+        global min_likes
+        min_likes = int(text)
+        await update.message.reply_text(f"حداقل لایک به {min_likes} تغییر یافت.")
     else:
         await update.message.reply_text("دستور نامعتبر است. لطفاً از کیبورد استفاده کنید.")
 
