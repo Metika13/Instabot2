@@ -9,7 +9,7 @@ from flask import Flask, request
 app = Flask(__name__)
 
 # تنظیمات ربات
-TELEGRAM_API_KEY = os.getenv('TELEGRAM_API_KEY')
+TELEGRAM_API_KEY = os.getenv('7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU')
 if not TELEGRAM_API_KEY:
     raise ValueError("کلید API تلگرام یافت نشد.")
 
