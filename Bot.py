@@ -2,10 +2,10 @@ import os
 import instaloader
 import requests
 import time
+import schedule
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
-from apscheduler.schedulers.background import BackgroundScheduler
 
 # ایجاد یک سرور HTTP ساده
 app = Flask(__name__)
@@ -22,7 +22,6 @@ video_to_post = []  # لیست ویدیوهای دانلود شده
 stories_to_post = []  # لیست استوری‌های دانلود شده
 profiles_to_fetch = ["profile1", "profile2"]  # لیست پیج‌ها برای دانلود استوری
 num_stories_to_fetch = 5  # تعداد استوری‌های دانلود شده
-scheduler = BackgroundScheduler()  # زمان‌بندی ارسال پست‌ها
 
 # بارگذاری سشن اینستاگرام
 L = instaloader.Instaloader()
@@ -83,8 +82,14 @@ def upload_story_to_instagram(story):
 
 # زمان‌بندی ارسال پست‌ها
 def schedule_post(post, caption, time_to_post):
-    scheduler.add_job(upload_to_instagram, 'date', run_date=time_to_post, args=[post, caption])
+    schedule.every().day.at(time_to_post).do(upload_to_instagram, post, caption)
     print(f"⏰ پست برای ارسال در {time_to_post} زمان‌بندی شد.")
+
+# اجرای زمان‌بندی‌ها
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 # ایجاد کیبورد پیش‌فرض
 def get_main_keyboard():
@@ -93,6 +98,13 @@ def get_main_keyboard():
         [KeyboardButton("تنظیمات")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+
+# تابع start برای پاسخ به دستور /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "سلام! من ربات مدیریت اینستاگرام هستم. لطفاً یکی از گزینه‌ها را انتخاب کنید.",
+        reply_markup=get_main_keyboard()
+    )
 
 # تایید ویدیو توسط کاربر
 async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -162,7 +174,10 @@ async def webhook():
 
 # اجرای ربات
 if __name__ == '__main__':
-    # شروع زمان‌بندی
-    scheduler.start()
+    # شروع زمان‌بندی در یک thread جداگانه
+    import threading
+    scheduler_thread = threading.Thread(target=run_scheduler)
+    scheduler_thread.start()
+
     # اجرای ربات
     application.run_polling()
