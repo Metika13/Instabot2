@@ -5,3 +5,4 @@ requests==2.31.0
 Flask==2.2.5
 apscheduler
 flask[async]
+nest_asyncio
