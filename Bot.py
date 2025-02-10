@@ -210,6 +210,7 @@ def webhook():
         print(f"📩 داده دریافتی:\n{data}")
         update = Update.de_json(data, application.bot)
         application.update_queue.put_nowait(update)
+        print("✅ پیام به صف اضافه شد.")
         return 'ok', 200
     except Exception as e:
         print(f"⚠️ خطا در پردازش وب‌هوک:\n{traceback.format_exc()}")
