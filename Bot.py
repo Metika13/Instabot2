@@ -9,6 +9,15 @@ from config import BOT_TOKEN, INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 from datetime import datetime, timedelta
 import sqlite3
 from moviepy.editor import VideoFileClip
+import logging
+
+# تنظیمات لاگ
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
 
 app = Client("my_account", api_id=YOUR_API_ID, api_hash=YOUR_API_HASH, bot_token=BOT_TOKEN)
 loader = Instaloader()
@@ -32,33 +41,89 @@ conn.commit()
 
 # --- توابع ---
 
-# ... (توابع دانلود و ارسال پست به اینستاگرام بدون تغییر)
+def download_trending_videos(hashtag, min_likes):
+    try:
+        logger.info(f"شروع دانلود ویدیوهای ترند با هشتگ {hashtag} و حداقل لایک {min_likes}")
+        loader.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)
+        posts = loader.get_hashtag_posts(hashtag)
+        trending_videos = []
+        for post in posts:
+            if post.is_video and post.likes >= min_likes:
+                trending_videos.append(post)
+                if len(trending_videos) >= 5:
+                    break
+        logger.info(f"تعداد {len(trending_videos)} ویدیو دانلود شد.")
+        return trending_videos
+    except Exception as e:
+        logger.error(f"خطا در دانلود ویدیوها: {e}")
+        return []
+
+def download_stories(usernames):
+    try:
+        logger.info(f"شروع دانلود استوری از صفحات {usernames}")
+        stories = []
+        for username in usernames:
+            try:
+                profile = Profile.from_username(loader.context, username)
+                for story in profile.get_stories():
+                    stories.append(story)
+                if len(stories) >= 5:
+                    break
+            except Exception as e:
+                logger.error(f"خطا در دانلود استوری از {username}: {e}")
+        logger.info(f"تعداد {len(stories)} استوری دانلود شد.")
+        return stories
+    except Exception as e:
+        logger.error(f"خطا در دانلود استوری‌ها: {e}")
+        return []
+
+def post_to_instagram(media_path, caption):
+    try:
+        logger.info(f"شروع ارسال پست به اینستاگرام: {media_path}")
+        loader.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)
+        loader.upload_post(media_path, caption=caption)
+        logger.info(f"پست با موفقیت منتشر شد: {media_path}")
+        return True
+    except Exception as e:
+        logger.error(f"خطا در ارسال پست به اینستاگرام: {e}")
+        return False
+
+def suggest_trending_videos():
+    logger.info("در حال جستجوی ویدیوهای ترند از منابع دیگر...")
+    # ... (کد جستجوی ویدیوها از منابع دیگر)
+    return []
 
 def process_media(media_path, caption, hashtags, min_likes):
+    logger.info(f"رسانه برای تایید ذخیره شد: {media_path}")
     cursor.execute("INSERT INTO posts (media_path, caption, hashtags, min_likes) VALUES (?, ?, ?, ?)", (media_path, caption, hashtags, min_likes))
     conn.commit()
     return "رسانه برای تایید ذخیره شد."
 
 def get_pending_posts():
+    logger.info("در حال واکشی پست‌های pending...")
     cursor.execute("SELECT * FROM posts WHERE approved = 0")
     return cursor.fetchall()
 
 def approve_post(post_id):
+    logger.info(f"در حال تایید پست با ID: {post_id}")
     cursor.execute("UPDATE posts SET approved = 1 WHERE id = ?", (post_id,))
     conn.commit()
     return "پست تایید شد."
 
 def reject_post(post_id):
+    logger.info(f"در حال حذف پست با ID: {post_id}")
     cursor.execute("DELETE FROM posts WHERE id = ?", (post_id,))
     conn.commit()
     return "پست حذف شد."
 
 def schedule_post(post_id, scheduled_time):
+    logger.info(f"در حال زمان‌بندی پست با ID: {post_id} برای زمان {scheduled_time}")
     cursor.execute("UPDATE posts SET scheduled_time = ? WHERE id = ?", (scheduled_time, post_id))
     conn.commit()
     return "زمان‌بندی پست ثبت شد."
 
 def get_scheduled_posts():
+    logger.info("در حال واکشی پست‌های زمان‌بندی شده...")
     cursor.execute("SELECT * FROM posts WHERE approved = 1 AND scheduled_time IS NOT NULL")
     return cursor.fetchall()
 
@@ -66,6 +131,7 @@ def get_scheduled_posts():
 
 @app.on_message(filters.command("start"))
 def start_command(client, message):
+    logger.info("کاربر وارد ربات شد.")
     keyboard = types.InlineKeyboardMarkup(
         [
             [
@@ -86,32 +152,37 @@ def start_command(client, message):
 @app.on_callback_query()
 def handle_callback_query(client, query):
     if query.data == "download_trending":
-        # ... (کد دانلود ویدیوهای ترند با استفاده از دکمه‌های کیبورد)
+        hashtag = "#explore"  # مقدار پیش فرض
+        min_likes = 1000  # مقدار پیش فرض
+        videos = download_trending_videos(hashtag, min_likes)
+        if videos:
+            for video in videos:
+                media_path = f"{video.shortcode}.mp4"
+                loader.download_post(video, filename=media_path)
+                caption = f"{video.caption} #{hashtag}"
+                hashtags = hashtag
+                query.message.reply_text(process_media(media_path, caption, hashtags, min_likes))
+        else:
+            query.message.reply_text("ویدیویی با این هشتگ و حداقل لایک یافت نشد.")
     elif query.data == "download_stories":
-        # ... (کد دانلود استوری‌ها با استفاده از دکمه‌های کیبورد)
+        usernames = ["your_username1", "your_username2"] # لیست صفحات مورد نظر
+        stories = download_stories(usernames)
+        if stories:
+            for story in stories:
+                media_path = f"{story.user_id}_{story.date_utc.timestamp()}.{story.is_video and 'mp4' or 'jpg'}"
+                loader.download_story(story, filename=media_path)
+                query.message.reply_text(process_media(media_path, "", "", 0))
+        else:
+            query.message.reply_text("استوری‌ای از این صفحات یافت نشد.")
     elif query.data == "pending_posts":
-        # ... (کد نمایش پست‌های pending با استفاده از دکمه‌های کیبورد)
+        posts = get_pending_posts()
+        if posts:
+            for post in posts:
+                query.message.reply_text(f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}")
+        else:
+            query.message.reply_text("هیچ پست pending وجود ندارد.")
     elif query.data == "scheduled_posts":
-        # ... (کد نمایش پست‌های زمان‌بندی شده با استفاده از دکمه‌های کیبورد)
-    elif query.data == "set_schedule":
-        # ... (کد تنظیم زمان‌بندی با استفاده از دکمه‌های کیبورد)
-
-# ... (بقیه دستورات ربات بدون تغییر)
-
-# --- زمان‌بندی ---
-
-def schedule_posts():
-    posts = get_scheduled_posts()
-    for post in posts:
-        if post[6] <= datetime.now().strftime("%Y-%m-%d %H:%M:%S"): # scheduled time is passed
-            if post_to_instagram(post[1], post[2]):
-                cursor.execute("DELETE FROM posts WHERE id = ?", (post[0],))
-                conn.commit()
-
-schedule.every(10).minutes.do(schedule_posts) # هر 10 دقیقه اجرا شود
-
-while True:
-    schedule.run_pending()
-    time.sleep(1)
-
-app.run()
+        posts = get_scheduled_posts()
+        if posts:
+            for post in posts:
+                query.message.reply_text(f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {
