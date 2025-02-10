@@ -6,7 +6,7 @@ Pillow
 moviepy
 python-telegram-bot
 moviepy
-imageio==2.10.4  # برای جلوگیری از مشکلات احتمالی با imageio
+imageio==2.10.4  # or a compatible version
 Pillow
  numpy
     tqdm
