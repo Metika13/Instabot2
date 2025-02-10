@@ -5,3 +5,11 @@ requests
 Pillow
 moviepy
 python-telegram-bot
+moviepy
+imageio==2.10.4  # برای جلوگیری از مشکلات احتمالی با imageio
+Pillow
+ numpy
+    tqdm
+    decorator
+    proglog
+    opencv-python
