@@ -178,11 +178,50 @@ def handle_callback_query(client, query):
         posts = get_pending_posts()
         if posts:
             for post in posts:
-                query.message.reply_text(f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}")
+                message_text = f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}"
+                # تقسیم پیام به بخش‌های کوچکتر
+                for chunk in [message_text[i:i+1024] for [i:i+1024] for i in range(0, len(message_text), 1024)]:
+                    query.message.reply_text(chunk)
         else:
             query.message.reply_text("هیچ پست pending وجود ندارد.")
     elif query.data == "scheduled_posts":
         posts = get_scheduled_posts()
         if posts:
             for post in posts:
-                query.message.reply_text(f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {
+                message_text = f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}\nزمان‌بندی: {post[6]}"
+                # تقسیم پیام به بخش‌های کوچکتر
+                for chunk in [message_text[i:i+1024] for i in range(0, len(message_text), 1024)]:
+                    query.message.reply_text(chunk)
+        else:
+            query.message.reply_text("هیچ پست زمان‌بندی شده وجود ندارد.")
+    elif query.data == "set_schedule":
+      #  کد تنظیم زمان‌بندی
+        query.message.reply_text("برای تنظیم زمان‌بندی، لطفا ID پست و زمان مورد نظر خود را وارد کنید (به عنوان مثال: 1 2024-03-15 10:00:00).")
+
+        @app.on_message(filters.regex(r"^\d+ \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"))
+        def set_schedule_time(client, message):
+            try:
+                post_id, scheduled_time = message.text.split()
+                schedule_post(int(post_id), scheduled_time)
+                query.message.reply_text("زمان‌بندی با موفقیت ثبت شد.")
+            except Exception as e:
+                query.message.reply_text(f"خطا در تنظیم زمان‌بندی: {e}")
+
+# --- زمان‌بندی ---
+
+def schedule_posts():
+    posts = get_scheduled_posts()
+    for post in posts:
+        if post[6] and post[6] <= datetime.now().strftime("%Y-%m-%d %H:%M:%S"): # scheduled time is passed
+            if post_to_instagram(post[1], post[2]):
+                cursor.execute("DELETE FROM posts WHERE id = ?", (post[0],))
+                conn.commit()
+                logger.info(f"پست با ID {post[0]} در اینستاگرام منتشر و از پایگاه داده حذف شد.")
+
+schedule.every(10).minutes.do(schedule_posts) # هر 10 دقیقه اجرا شود
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+app.run()
