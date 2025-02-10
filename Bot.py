@@ -180,7 +180,10 @@ def handle_callback_query(client, query):
             for post in posts:
                 message_text = f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}"
                 # تقسیم پیام به بخش‌های کوچکتر
-                for chunk in [message_text[i:i+1024] for [i:i+1024] for i in range(0, len(message_text), 1024)]:
+                for chunk in [message_text[i:i+1024] for i in range(0, len(message_text), 10
+                                                                    {post[3]}\nحداقل لایک: {post[4]}"
+                # تقسیم پیام به بخش‌های کوچکتر
+                for chunk in [message_text[i:i+1024] for i in range(0, len(message_text), 1024)]:
                     query.message.reply_text(chunk)
         else:
             query.message.reply_text("هیچ پست pending وجود ندارد.")
@@ -219,7 +222,6 @@ def schedule_posts():
                 logger.info(f"پست با ID {post[0]} در اینستاگرام منتشر و از پایگاه داده حذف شد.")
 
 schedule.every(10).minutes.do(schedule_posts) # هر 10 دقیقه اجرا شود
-
 while True:
     schedule.run_pending()
     time.sleep(1)
