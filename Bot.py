@@ -215,22 +215,16 @@ def webhook():
         print(f"⚠️ خطا در پردازش وب‌هوک:\n{traceback.format_exc()}")
         return 'error', 500
 
-# تنظیم وب‌هوک
+# تنظیم وب‌هوک در تلگرام
 async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com/webhook"  # جایگزین کنید با دامنه واقعی
+    webhook_url = 'https://instabot2-1.onrender.com/webhook'
     try:
-        response = await application.bot.set_webhook(url=webhook_url)
-        print(f"✅ وب‌هوک تنظیم شد: {response}")
+        await application.bot.set_webhook(webhook_url)
+        print(f"✅ وب‌هوک به {webhook_url} تنظیم شد.")
     except Exception as e:
-        print(f"⚠️ خطا در تنظیم وب‌هوک:\n{traceback.format_exc()}")
+        print(f"❌ خطا در تنظیم وب‌هوک:\n{traceback.format_exc()}")
 
 # اجرای برنامه
-async def main():
-    await set_webhook()
-    await application.run_polling()
-
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    print("🚀 ربات اجرا شد.")
-    app.run(host='0.0.0.0', port=8080)
+    set_webhook()
+    app.run(host="0.0.0.0", port=8080)
