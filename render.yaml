@@ -5,10 +5,9 @@ services:
       docker: Dockerfile
     envVars:
       - name: BOT_TOKEN
-        value: YOUR_BOT_TOKEN
-      - name: CHANNEL_ID
-        value: YOUR_CHANNEL_ID
+        value: 7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU
+   
       - name: INSTAGRAM_USERNAME
-        value: YOUR_INSTAGRAM_USERNAME
+        value: mtkh13o
       - name: INSTAGRAM_PASSWORD
-        value: YOUR_INSTAGRAM_PASSWORD
+        value: 191275Mm
