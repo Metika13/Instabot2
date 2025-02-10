@@ -178,10 +178,10 @@ def handle_callback_query(client, query):
         posts = get_pending_posts()
         if posts:
             for post in posts:
-              message_text = f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}"
+           message_text = f"ID: {post[0]}\nمسیر: {post[1]}\nکپشن: {post[2]}\nهشتگ‌ها: {post[3]}\nحداقل لایک: {post[4]}"
                 # تقسیم پیام به بخش‌های کوچکتر
-                for chunk in (message_text[i:i+1024] for i in range(0, len(message_text), 1024)): # Parentheses instead of brackets
-                    query.message.reply_text(chunk) # تقسیم پیام به بخش‌های کوچکتر
+                for chunk in (message_text[i:i+1024] for i in range(0, len(message_text), 1024)):  # Parentheses instead of brackets
+                     query.message.reply_text(chunk)  # This line MUST be indented
                 for chunk in [message_text[i:i+1024] for i in range(0, len(message_text), 1024)]:
                     query.message.reply_text(chunk)
         else:
