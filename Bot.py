@@ -2,6 +2,7 @@ import os
 import instaloader
 import requests
 import time
+import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from flask import Flask, request
@@ -155,21 +156,21 @@ def home():
     return "ربات تلگرام در حال اجرا است!"
 
 @app.route('/webhook', methods=['POST'])
-async def webhook():
-    update = Update.de_json(await request.get_json(), application.bot)
-    await application.update_queue.put(update)
+def webhook():
+    # پردازش درخواست به صورت همزمان
+    update = Update.de_json(request.get_json(), application.bot)
+    application.update_queue.put(update)
     return 'ok'
 
 # تنظیم وب‌هوک
 async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com"
+    webhook_url = "https://instabot2-1.onrender.com/webhook"
     await application.bot.set_webhook(url=webhook_url)
     print(f"Webhook set to: {webhook_url}")
 
 # اجرای ربات
 if __name__ == '__main__':
     # تنظیم وب‌هوک
-    import asyncio
     asyncio.run(set_webhook())
 
     # اجرای ربات
