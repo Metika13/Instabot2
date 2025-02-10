@@ -9,3 +9,6 @@ services:
       - key: TELEGRAM_API_KEY
         value: 7765223935:AAE1PSF2JzymyDyWv_B4dqgH4hvQYjfTPaU
     port: 8080  # تنظیم پورت
+envVars:
+  - key: INSTAGRAM_SESSION_FILE
+    value: /path/to/mtkh13o_session.json
