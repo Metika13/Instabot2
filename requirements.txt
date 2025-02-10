@@ -13,3 +13,4 @@ Pillow
     decorator
     proglog
     opencv-python
+pyrogram[tgcrypto]
