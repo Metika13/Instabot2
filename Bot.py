@@ -120,6 +120,7 @@ async def approve_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # کنترل انتخاب کاربر برای تایید یا رد پست
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    print(f"پیام دریافتی: {text}")  # برای چاپ پیام‌ها
     if text == "تایید":
         post = video_to_post.pop(0)
         await update.message.reply_text("✅ پست تایید شد و در اینستاگرام ارسال خواهد شد.")
@@ -157,10 +158,14 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 async def webhook():
-    # پردازش درخواست به صورت همزمان
-    update = Update.de_json(request.get_json(), application.bot)
-    await application.update_queue.put(update)
-    return 'ok'
+    try:
+        update = Update.de_json(request.get_json(), application.bot)
+        print(f"درخواست دریافت شد: {update}")  # چاپ درخواست دریافتی
+        await application.update_queue.put(update)
+        return 'ok'
+    except Exception as e:
+        print(f"خطا در پردازش وب‌هوک: {e}")
+        return 'error'
 
 # تنظیم وب‌هوک
 async def set_webhook():
