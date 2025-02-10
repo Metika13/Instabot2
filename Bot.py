@@ -16,7 +16,7 @@ if not TELEGRAM_API_KEY:
 # مقداردهی اولیه
 video_to_post = []
 stories_to_post = []
-profiles_to_fetch = ["profile1", "profile2"]
+profiles_to_fetch = ["profile1", "profile2"]  # جایگزین کنید با نام‌های کاربری اینستاگرام
 min_likes = 1000
 hashtags = "#viral"
 num_stories_to_fetch = 5
@@ -38,6 +38,12 @@ except Exception as e:
     print(f"❌ خطا در بارگذاری سشن:\n{traceback.format_exc()}")
     exit(1)
 
+# ایجاد پوشه‌های مورد نیاز
+if not os.path.exists("downloads"):
+    os.makedirs("downloads")
+if not os.path.exists("downloads/stories"):
+    os.makedirs("downloads/stories")
+
 # دانلود ویدیوهای ترند
 def download_trending_videos():
     print("📥 در حال دانلود ویدیوهای ترند...")
@@ -50,7 +56,7 @@ def download_trending_videos():
                     video_to_post.append(post)
                     print(f"✅ ویدیو {post.shortcode} با {post.likes} لایک دانلود شد.")
                     return
-                time.sleep(10)
+                time.sleep(10)  # تاخیر برای جلوگیری از محدودیت نرخ
         except Exception:
             print(f"❌ خطا در دریافت ویدیوهای هشتگ #{hashtag}:\n{traceback.format_exc()}")
 
@@ -67,7 +73,7 @@ def download_stories():
                 L.download_storyitem(story, target="downloads/stories")
                 stories_to_post.append(story)
                 print(f"✅ استوری از {profile.username} دانلود شد.")
-                time.sleep(10)
+                time.sleep(10)  # تاخیر برای جلوگیری از محدودیت نرخ
         except Exception:
             print(f"❌ خطا در دریافت استوری‌ها از {profile}:\n{traceback.format_exc()}")
 
@@ -178,7 +184,7 @@ def webhook():
 
 # تنظیم وب‌هوک
 async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com/webhook"
+    webhook_url = "https://your-domain.com/webhook"  # جایگزین کنید با دامنه واقعی
     try:
         response = await application.bot.set_webhook(url=webhook_url)
         print(f"✅ وب‌هوک تنظیم شد: {response}")
@@ -186,8 +192,12 @@ async def set_webhook():
         print(f"⚠️ خطا در تنظیم وب‌هوک:\n{traceback.format_exc()}")
 
 # اجرای برنامه
+async def main():
+    await set_webhook()
+    await application.run_polling()
+
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(set_webhook())
+    loop.run_until_complete(main())
     print("🚀 ربات اجرا شد.")
     app.run(host='0.0.0.0', port=8080)
