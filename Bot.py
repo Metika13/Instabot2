@@ -162,7 +162,7 @@ async def webhook():
 
 # تنظیم وب‌هوک
 async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com/webhook"
+    webhook_url = "https://instabot2-1.onrender.com"
     await application.bot.set_webhook(url=webhook_url)
     print(f"Webhook set to: {webhook_url}")
 
