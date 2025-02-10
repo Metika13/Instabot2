@@ -226,5 +226,8 @@ async def set_webhook():
 
 # اجرای برنامه
 if __name__ == '__main__':
-    asyncio.run(set_webhook())  # استفاده از asyncio.run برای اجرا کردن set_webhook
+    # اجرای تنظیم وب‌هوک به صورت غیرهمزمان در پس‌زمینه
+    loop = asyncio.get_event_loop()
+    loop.create_task(set_webhook())
+    # راه‌اندازی سرور Flask
     app.run(host="0.0.0.0", port=8080)
