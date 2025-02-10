@@ -7,6 +7,10 @@ import traceback
 from flask import Flask, request
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import nest_asyncio
+
+# فعال‌سازی nest_asyncio
+nest_asyncio.apply()
 
 # تنظیمات
 TELEGRAM_API_KEY = os.getenv('TELEGRAM_API_KEY')
@@ -213,7 +217,7 @@ def webhook():
 
 # تنظیم وب‌هوک
 async def set_webhook():
-    webhook_url = "https://instabot2-1.onrender.com/webhook"  # جایگزین کنید با دامنه واقعی
+    webhook_url = "https://your-domain.com/webhook"  # جایگزین کنید با دامنه واقعی
     try:
         response = await application.bot.set_webhook(url=webhook_url)
         print(f"✅ وب‌هوک تنظیم شد: {response}")
