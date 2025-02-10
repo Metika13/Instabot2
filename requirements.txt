@@ -1,8 +1,7 @@
-python-telegram-bot==20.0
-instaloader==4.8.4
-schedule==1.1.0
-requests==2.31.0
-Flask==2.2.5
-apscheduler
-flask[async]
-nest_asyncio
+pyrogram
+instaloader
+schedule
+requests
+Pillow
+moviepy
+python-telegram-bot
