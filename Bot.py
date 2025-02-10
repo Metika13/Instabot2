@@ -72,12 +72,10 @@ def download_stories():
 
 # ارسال پست در اینستاگرام (نیاز به API اینستاگرام)
 def upload_to_instagram(post):
-    # این بخش نیاز به API اینستاگرام دارد
     print(f"✅ پست {post.shortcode} در اینستاگرام آپلود شد.")
 
 # ارسال استوری در اینستاگرام (نیاز به API اینستاگرام)
 def upload_story_to_instagram(story):
-    # این بخش نیاز به API اینستاگرام دارد
     print(f"✅ استوری در اینستاگرام آپلود شد.")
 
 # ایجاد کیبورد پیش‌فرض
