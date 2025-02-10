@@ -5,7 +5,7 @@ import schedule
 from pyrogram import Client, filters, types
 from instaloader import Instaloader, Profile
 import requests
-from config import BOT_TOKEN, CHANNEL_ID, INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
+from config import BOT_TOKEN, INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 from datetime import datetime, timedelta
 import sqlite3
 from moviepy.editor import VideoFileClip
